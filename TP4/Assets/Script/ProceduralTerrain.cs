@@ -18,28 +18,27 @@ public class ProceduralTerrain : MonoBehaviour
     private const float radius = 1f;
 
     private Mesh mesh;
-
     private MeshCollider meshCollider;
 
     public Vector3[] vertices;
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         meshCollider = GetComponent<MeshCollider>();
         vertices = new Vector3[width * height];
         int[] triangles = new int[(width - 1) * (height - 1) * 6];
+
+        // Génération des vertices avec Perlin Noise
         for (int x = 0; x < width; x++)
         {
             for (int z = 0; z < height; z++)
             {
-                vertices[z * width + x] = new Vector3(x, Mathf.PerlinNoise(vertices[x].x * scale, vertices[x].z *
-                scale) * amplitude, z);
+                float y = Mathf.PerlinNoise(x * scale, z * scale) * amplitude;
+                vertices[z * width + x] = new Vector3(x, y, z);
             }
-
         }
 
+        // Génération des triangles
         int index = 0;
         for (int x = 0; x < width - 1; x++)
         {
@@ -50,27 +49,39 @@ public class ProceduralTerrain : MonoBehaviour
                 int bottomLeft = topLeft + width;
                 int bottomRight = bottomLeft + 1;
 
-                // Triangle 1 
                 triangles[index++] = topLeft;
                 triangles[index++] = bottomLeft;
                 triangles[index++] = topRight;
 
-                // Triangle 2 
                 triangles[index++] = topRight;
                 triangles[index++] = bottomLeft;
                 triangles[index++] = bottomRight;
             }
         }
+
+        // Ajout des UVs
+        Vector2[] uvs = new Vector2[vertices.Length];
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < height; z++)
+            {
+                float u = (float)x / (width - 1);
+                float v = (float)z / (height - 1);
+                uvs[z * width + x] = new Vector2(u, v);
+            }
+        }
+
+        // Assignation au mesh
         mesh = new Mesh();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
+        mesh.uv = uvs;
         mesh.RecalculateNormals();
+
         GetComponent<MeshFilter>().mesh = mesh;
         meshCollider.sharedMesh = mesh;
-        
     }
 
-    // Update is called once per frame
     void Update()
     {
         DeformJob deformJob = new DeformJob
@@ -80,14 +91,18 @@ public class ProceduralTerrain : MonoBehaviour
             radius = radius,
             strength = deformationStrength
         };
+
         JobHandle jobHandle = deformJob.Schedule(vertices.Length, 64);
         jobHandle.Complete();
 
         vertices = deformJob.vertices.ToArray();
         mesh.vertices = vertices;
         mesh.RecalculateNormals();
+
+        // Mise à jour du mesh
         GetComponent<MeshFilter>().mesh = null;
         GetComponent<MeshFilter>().mesh = mesh;
+
         meshCollider.sharedMesh = null;
         meshCollider.sharedMesh = mesh;
     }
@@ -99,6 +114,7 @@ public class ProceduralTerrain : MonoBehaviour
         public Vector3 hitPoint;
         public float radius;
         public float strength;
+
         public void Execute(int index)
         {
             Vector3 vertex = vertices[index];
