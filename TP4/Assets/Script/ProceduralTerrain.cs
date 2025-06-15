@@ -5,11 +5,11 @@ using UnityEngine;
 
 public class ProceduralTerrain : MonoBehaviour
 {
-    private const int width = 50;
-    private const int height = 50;
+    public int width = 80;
+    public int height = 80;
 
     public float scale = 0.1f;
-    private float amplitude = 5f;
+    public float amplitude = 5f;
 
     private float deformationStrength = 1f;
 

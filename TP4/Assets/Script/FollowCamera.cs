@@ -3,12 +3,15 @@ using UnityEngine;
 public class FollowCamera : MonoBehaviour
 {
     public Transform target;
-    public Vector3 offset = new Vector3(0, 2, -4);
+    public Vector3 offset = new Vector3(0f, 2f, -4f);
+    public float smoothSpeed = 5f;
 
     void LateUpdate()
     {
-        if (target != null)
-            transform.position = target.position + offset;
+        if (target == null) return;
+
+        Vector3 desiredPosition = target.TransformPoint(offset);
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime);
+        transform.LookAt(target.position + Vector3.up * 1.5f); // Regarder vers le haut du joueur
     }
 }
-
