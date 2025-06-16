@@ -1,15 +1,21 @@
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 
-public class LookTargetController : MonoBehaviour
+public class LookAndReachTargetController : MonoBehaviour
 {
-    public Transform characterRoot;         // Transform du personnage (souvent le GameObject parent ou torse)
-    public Transform target;                // L'objet à regarder
-    public MultiAimConstraint aimConstraint;
-    public float dotThreshold = 0.3f;       // Plus tu montes ce seuil, plus la tête se limite au devant
-    public float smoothSpeed = 5f;          // Vitesse d'interpolation du poids (plus grand = plus rapide)
+    public Transform characterRoot; // Référence du torse ou de la racine
+    public Transform target;        // L’objet à regarder/atteindre
 
-    private float currentWeight = 0f;
+    public MultiAimConstraint headAimConstraint;   // Pour la tête
+    public TwoBoneIKConstraint armIKConstraint;    // Pour le bras
+
+    [Header("Activation")]
+    [Range(-1f, 1f)]
+    public float dotThreshold = 0.3f;     // Si la target est devant (dot > seuil)
+    public float smoothSpeed = 5f;        // Interpolation poids
+
+    private float headWeight = 0f;
+    private float armWeight = 0f;
 
     void Update()
     {
@@ -17,13 +23,18 @@ public class LookTargetController : MonoBehaviour
         Vector3 forward = characterRoot.forward;
 
         float dot = Vector3.Dot(forward, toTarget);
+        bool isTargetInFront = dot > dotThreshold;
 
-        // Détermine le poids cible (0 ou 1)
-        float targetWeight = dot > dotThreshold ? 1f : 0f;
+        float targetWeight = isTargetInFront ? 1f : 0f;
 
-        // Interpolation fluide vers le poids cible
-        currentWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * smoothSpeed);
+        // Interpolation douce
+        headWeight = Mathf.Lerp(headWeight, targetWeight, Time.deltaTime * smoothSpeed);
+        armWeight = Mathf.Lerp(armWeight, targetWeight, Time.deltaTime * smoothSpeed);
 
-        aimConstraint.weight = currentWeight;
+        if (headAimConstraint != null)
+            headAimConstraint.weight = headWeight;
+
+        if (armIKConstraint != null)
+            armIKConstraint.weight = armWeight;
     }
 }
